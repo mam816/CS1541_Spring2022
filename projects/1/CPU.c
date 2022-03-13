@@ -12,6 +12,14 @@
 unsigned int cycle_number = 0;
 unsigned int inst_number = 0;
 
+typedef struct node {
+    int val;
+    struct node * next;
+} node_t;
+
+node_t * head = NULL;
+head = (node_t *) malloc(sizeof(node_t));
+
 std::deque<dynamic_inst> IF, ID, WB;
 dynamic_inst EX_ALU = {0}, MEM_ALU = {0};
 dynamic_inst EX_lwsw = {0}, MEM_lwsw = {0};
@@ -145,11 +153,25 @@ int fetch()
   instruction *tr_entry = NULL;
 
   /* copy trace entry(s) into IF stage */
+  //add splitCache check to avoid structural hazard
   while((int)IF.size() < config->pipelineWidth) {
     size_t size = trace_get_item(&tr_entry); /* put the instruction into a buffer */
     if (size > 0) {
       dinst.inst = *tr_entry;
       dinst.seq = cur_seq++;
+      if(splitCache == true)
+      {
+        //make a linked list for each, for now. May need to make hash map later
+        //no stalling is needed to avoid hazards. Proceed as normal I suppose
+        //I-cache and d-cache
+        //how to check that thing are going to the correct respective cache?
+        //push instruction into i cache
+         //then push the data it uses into the d cache
+         //may need to create my own two new cahces for each. Suggestion was a hash map
+         IF.push_back(dinst);// then continue as normal
+         insts++;
+      }
+      //but if not, would need to see if we need to stall to avoid hazard
       IF.push_back(dinst);
       insts++;
     } else {
